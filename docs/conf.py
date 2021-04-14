@@ -203,3 +203,6 @@ sys.path.append(os.path.dirname(__file__))
 MANPAGES = os.environ.get('MANPAGES') == 'True'
 if not MANPAGES:
     from full_conf import *
+
+
+tags.add('Vault')
