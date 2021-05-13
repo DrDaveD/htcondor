@@ -2465,6 +2465,7 @@ int SubmitHash::SetGSICredentials()
 		(gridType == "gt2" ||
 		 gridType == "gt5" ||
 		 gridType == "cream" ||
+		 gridType == "arc" ||
 		 gridType == "nordugrid" ) )
 	{
 		use_proxy = true;
@@ -2863,6 +2864,7 @@ static bool validate_gridtype(MyString & JobGridType) {
 		gridType == "naregi" ||
 		gridType == "condor" ||
 		gridType == "nordugrid" ||
+		gridType == "arc" ||
 		gridType == "ec2" ||
 		gridType == "gce" ||
 		gridType == "azure" ||
@@ -3078,6 +3080,21 @@ int SubmitHash::SetGridParams()
 
 	if( (tmp = submit_param(SUBMIT_KEY_NordugridRSL, ATTR_NORDUGRID_RSL)) ) {
 		AssignJobString(ATTR_NORDUGRID_RSL, tmp);
+		free( tmp );
+	}
+
+	if( (tmp = submit_param(SUBMIT_KEY_ArcRSL, ATTR_ARC_RSL)) ) {
+		AssignJobString(ATTR_ARC_RSL, tmp);
+		free( tmp );
+	}
+
+	if( (tmp = submit_param(SUBMIT_KEY_ArcRte, ATTR_ARC_RTE)) ) {
+		AssignJobString(ATTR_ARC_RTE, tmp);
+		free( tmp );
+	}
+
+	if( (tmp = submit_param(SUBMIT_KEY_ArcResources, ATTR_ARC_RESOURCES)) ) {
+		AssignJobString(ATTR_ARC_RESOURCES, tmp);
 		free( tmp );
 	}
 
@@ -4245,7 +4262,7 @@ int SubmitHash::SetJobRetries()
 					valid_retry_until = false;
 				} else {
 					retry_until.clear();
-					formatstr(retry_until, ATTR_ON_EXIT_CODE " == %d", (int)futility_code);
+					formatstr(retry_until, ATTR_ON_EXIT_CODE " =?= %d", (int)futility_code);
 				}
 			} else {
 				ExprTree * expr = WrapExprTreeInParensForOp(tree, classad::Operation::LOGICAL_OR_OP);
@@ -4289,7 +4306,7 @@ int SubmitHash::SetJobRetries()
 	}
 
 	// Build the appropriate OnExitRemove expression, we will fill in success exit status value and other clauses later.
-	const char * basic_exit_remove_expr = ATTR_NUM_JOB_COMPLETIONS " > " ATTR_JOB_MAX_RETRIES " || " ATTR_ON_EXIT_CODE " == ";
+	const char * basic_exit_remove_expr = ATTR_NUM_JOB_COMPLETIONS " > " ATTR_JOB_MAX_RETRIES " || " ATTR_ON_EXIT_CODE " =?= ";
 
 	// build the sub expression that checks for exit codes that should end retries
 	std::string code_check;
@@ -4371,6 +4388,7 @@ int SubmitHash::SetRemoteAttrs()
 	ExprItem tostringize[] = {
 		{ SUBMIT_KEY_GlobusRSL, "globus_rsl", ATTR_GLOBUS_RSL },
 		{ SUBMIT_KEY_NordugridRSL, "nordugrid_rsl", ATTR_NORDUGRID_RSL },
+		{ SUBMIT_KEY_ArcRSL, "arc_rsl", ATTR_ARC_RSL },
 		{ SUBMIT_KEY_GridResource, 0, ATTR_GRID_RESOURCE },
 	};
 	const int tostringizesz = sizeof(tostringize) / sizeof(tostringize[0]);
@@ -4774,7 +4792,7 @@ int SubmitHash::SetUniverse()
 
 		if ( ! valid_grid_type) {
 			push_error(stderr, "Invalid value '%s' for grid type\n"
-				"Must be one of: gt2, gt5, pbs, lsf, sge, nqs, condor, nordugrid, unicore, ec2, gce, azure, cream, or boinc\n",
+				"Must be one of: gt2, gt5, pbs, lsf, sge, nqs, condor, nordugrid, arc, unicore, ec2, gce, azure, cream, or boinc\n",
 				JobGridType.c_str());
 			ABORT_AND_RETURN(1);
 		}
@@ -5060,6 +5078,8 @@ static const SimpleSubmitKeyword prunable_keywords[] = {
 	{SUBMIT_KEY_GlobusRematch, ATTR_REMATCH_CHECK, SimpleSubmitKeyword::f_as_expr | SimpleSubmitKeyword::f_special_grid },
 	{SUBMIT_KEY_GlobusRSL, ATTR_GLOBUS_RSL, SimpleSubmitKeyword::f_as_string | SimpleSubmitKeyword::f_special_grid },
 	{SUBMIT_KEY_NordugridRSL, ATTR_NORDUGRID_RSL, SimpleSubmitKeyword::f_as_string | SimpleSubmitKeyword::f_special_grid },
+	{SUBMIT_KEY_ArcRSL, ATTR_ARC_RSL, SimpleSubmitKeyword::f_as_string | SimpleSubmitKeyword::f_special_grid },
+	{SUBMIT_KEY_ArcRte, ATTR_ARC_RTE, SimpleSubmitKeyword::f_as_string | SimpleSubmitKeyword::f_special_grid },
 	{SUBMIT_KEY_CreamAttributes, ATTR_CREAM_ATTRIBUTES, SimpleSubmitKeyword::f_as_string | SimpleSubmitKeyword::f_special_grid },
 	{SUBMIT_KEY_BatchProject, ATTR_BATCH_PROJECT, SimpleSubmitKeyword::f_as_string | SimpleSubmitKeyword::f_special_grid },
 	{SUBMIT_KEY_BatchQueue, ATTR_BATCH_QUEUE, SimpleSubmitKeyword::f_as_string | SimpleSubmitKeyword::f_special_grid },
@@ -5840,17 +5860,15 @@ int SubmitHash::SetRequirements()
 		return abort_code;
 	}
 
-	const char * factory_req = lookup_macro_exact_no_default("FACTORY.AppendReq", SubmitMacroSet);
-	if (factory_req) {
-		if (factory_req[0]) {
-			// We found something to append.
-			if ( ! answer.empty()) { answer += " && "; }
-			if (factory_req[0] == '(') { answer += factory_req; }
-			else {
-				answer += "(";
-				answer += factory_req;
-				answer += ")";
-			}
+	std::string factory_req = lookup_macro_exact_no_default("FACTORY.AppendReq", SubmitMacroSet);
+	if(! factory_req.empty()) {
+		// We found something to append.
+		if ( ! answer.empty()) { answer += " && "; }
+		if (factory_req[0] == '(') { answer += factory_req; }
+		else {
+			answer += "(";
+			answer += factory_req;
+			answer += ")";
 		}
 	}
 	else
@@ -6933,7 +6951,7 @@ int SubmitHash::SetVMParams()
 		// because we don't want to enum a directory at materialization time. so we set
 		// FACTORY.vm_input_files in the submit digest and use that instead of doing the directory walk
 		//
-		if (lookup_macro_exact_no_default("FACTORY.vm_input_files", SubmitMacroSet)) {
+		if (exists_macro_exact_no_default("FACTORY.vm_input_files", SubmitMacroSet)) {
 			// PRAGMA_REMIND("TODO: check for a VMWARE_DIR that varies by ProcId")
 		} else {
 			auto_free_ptr vmware_dir(submit_param(SUBMIT_KEY_VM_VMWARE_DIR, VMPARAM_VMWARE_DIR));
@@ -7122,14 +7140,14 @@ int SubmitHash::SetTransferFiles()
 		// On NT, if we're an MPI job, we need to find the
 		// mpich.dll file and automatically include that in the
 		// transfer input files
-		MyString dll_name("mpich.dll");
+		std::string dll_name("mpich.dll");
 
 		// first, check to make sure the user didn't already
 		// specify mpich.dll in transfer_input_files
-		if (! input_file_list.contains(dll_name.Value())) {
+		if (! input_file_list.contains(dll_name.c_str())) {
 			// nothing there yet, try to find it ourselves
-			MyString dll_path = which(dll_name);
-			if (dll_path.Length() == 0) {
+			std::string dll_path = which(dll_name);
+			if (dll_path.length() == 0) {
 				// File not found, fatal error.
 				push_error(stderr, "Condor cannot find the "
 					"\"mpich.dll\" file it needs to run your MPI job.\n"
@@ -7141,7 +7159,7 @@ int SubmitHash::SetTransferFiles()
 			// If we made it here, which() gave us a real path.
 			// so, now we just have to append that to our list of
 			// files. 
-			input_file_list.append(dll_path.Value());
+			input_file_list.append(dll_path.c_str());
 		}
 	}
 #endif /* WIN32 */
@@ -8589,7 +8607,7 @@ int SubmitForeachArgs::parse_queue_args (
 				items.append(plist);
 			} else {
 				items_filename = plist;
-				items_filename.trim();
+				trim(items_filename);
 			}
 		} else {
 			while (isspace(*plist)) ++plist;

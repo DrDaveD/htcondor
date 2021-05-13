@@ -516,11 +516,20 @@ VanillaProc::StartJob()
 					mount_list.deleteCurrent();
 					continue;
 				}
+
 				// Gah, I wish I could throw an exception to clean up these nested if statements.
 				if (IsDirectory(next_dir)) {
 					std::string fulldirbuf;
 					const char * full_dir = dirscat(working_dir, next_dir, fulldirbuf);
+
 					if (full_dir) {
+							// If the execute dir is under any component of MOUNT_UNDER_SCRATCH,
+							// bad things happen, so give up.
+						if (fulldirbuf.find(next_dir) == 0) {
+							dprintf(D_ALWAYS, "Can't bind mount %s under execute dir %s -- skipping MOUNT_UNDER_SCRATCH\n", next_dir, full_dir);
+							continue;
+						}
+
 						if (!mkdir_and_parents_if_needed( full_dir, S_IRWXU, PRIV_USER )) {
 							dprintf(D_ALWAYS, "Failed to create scratch directory %s\n", full_dir);
 							delete fs_remap;
@@ -572,7 +581,7 @@ VanillaProc::StartJob()
 
 		// When PID Namespaces are enabled, need to run the job
 		// under the condor_pid_ns_init program, so that signals
-		// propagate through to the child.  
+		// propagate through to the child.
 		// Be aware that StartJob() can be called repeatedly in the
 		// case of a self-checkpointing job, so be careful to only make
 		// modifications to the job classad once.
@@ -581,21 +590,21 @@ VanillaProc::StartJob()
 		// via an environment variable
 		if (!previously_setup_for_pid_namespace && param_boolean("USE_PID_NAMESPACE_INIT", true)) {
 			Env env;
-			MyString env_errors;
+			std::string env_errors;
 			std::string arg_errors;
 			std::string filename;
 
 			filename = Starter->GetWorkingDir(0);
 			filename += "/.condor_pid_ns_status";
-		
-			if (!env.MergeFrom(JobAd, &env_errors)) {
+
+			if (!env.MergeFrom(JobAd,  env_errors)) {
 				dprintf(D_ALWAYS, "Cannot merge environ from classad so cannot run condor_pid_ns_init\n");
 				delete fs_remap;
 				return 0;
 			}
 			env.SetEnv("_CONDOR_PID_NS_INIT_STATUS_FILENAME", filename);
 
-			if (!env.InsertEnvIntoClassAd(JobAd, &env_errors)) {
+			if (!env.InsertEnvIntoClassAd(JobAd,  env_errors)) {
 				dprintf(D_ALWAYS, "Cannot Insert environ from classad so cannot run condor_pid_ns_init\n");
 				delete fs_remap;
 				return 0;

@@ -2504,7 +2504,7 @@ tags=store_cred
 
 [SEC_TOKEN_SYSTEM_DIRECTORY]
 default=/etc/condor/tokens.d
-win32_default=
+win32_default=$(RELEASE_DIR)\tokens.d
 type=path
 tags=condor_auth_passwd
 
@@ -2687,7 +2687,7 @@ type=string
 tags=starter
 
 [STARTER_NUM_THREADS_ENV_VARS]
-default=CUBACORES GOMAXPROCS JULIA_NUM_THREADS MKL_NUM_THREADS NUMEXPR_NUM_THREADS OMP_NUM_THREADS OMP_THREAD_LIMIT TF_LOOP_PARALLEL_ITERATIONS TF_NUM_THREADS
+default=CUBACORES GOMAXPROCS JULIA_NUM_THREADS MKL_NUM_THREADS NUMEXPR_NUM_THREADS OMP_NUM_THREADS OMP_THREAD_LIMIT OPENBLAS_NUM_THREADS TF_LOOP_PARALLEL_ITERATIONS TF_NUM_THREADS
 type=string
 tags=starter
 
@@ -5175,6 +5175,10 @@ type=bool
 default=true
 type=bool
 
+[DOCKER_RUN_UNDER_INIT]
+default=true
+type=bool
+
 [DOCKER_TEST_IMAGE_PATH]
 default=$(LIBEXEC)/htcondor_docker_test
 type=string
@@ -5496,6 +5500,12 @@ default=$(SBIN)/AzureGAHPServer
 win32_default=$(SBIN)\AzureGAHPServer.py
 type=path
 
+[ARC_GAHP]
+default=$(SBIN)/arc_gahp
+
+[ARC_GAHP_LOG]
+default=/tmp/ArcGahpLog.$(USERNAME)
+
 [GAHP_SSL_CAFILE]
 default=
 type=path
@@ -5540,6 +5550,19 @@ type=path
 default=$(SBIN)/condor_credmon_oauth
 win32_default=
 type=path
+
+[LOCAL_CREDMON_TOKEN_USE_JSON]
+default=true
+type=bool
+
+[LOCAL_CREDMON_TOKEN_AUDIENCE]
+default=
+type=string
+
+[LOCAL_CREDMON_TOKEN_VERSION]
+default=scitokens:2.0
+type=string
+
 
 # standard API endpoints for common OAuth token providers
 [BOX_AUTHORIZATION_URL]
@@ -6215,7 +6238,7 @@ default : @end
 @end
 
 [$FEATURE.AssignAccountingGroup]
-description=Set the job accounting attributes by mapping the job's Owner attribute args:(map_file)
+description=Set the job accounting attributes by mapping the job's Owner attribute args:(map_file [,check_request])
 default : @fin
 	if ! $(1?)
 	  error : use FEATURE : AssignAccountingGroup requires a map_file argument
@@ -6225,6 +6248,12 @@ default : @fin
 	JOB_TRANSFORM_AssignAccountingGroup = [ copy_Owner="AcctGroupUser"; copy_AcctGroup="RequestedAcctGroup"; eval_set_AcctGroup=usermap("AssignAccountingGroup",AcctGroupUser,AcctGroup); eval_set_AccountingGroup=join(".",usermap("AssignAccountingGroup",AcctGroupUser,AcctGroup),AcctGroupUser); ]
 	# make sure that the user can't qedit these attributes once they have been set.
 	IMMUTABLE_JOB_ATTRS = $(IMMUTABLE_JOB_ATTRS) AcctGroup AcctGroupUser AccountingGroup
+	# optionally check that the user requested a valid group
+	if $(2:True)
+	  SUBMIT_REQUIREMENT_NAMES = $(SUBMIT_REQUIREMENT_NAMES) CheckRequestedGroup
+	  SUBMIT_REQUIREMENT_CheckRequestedGroup = RequestedAcctGroup is undefined || RequestedAcctGroup == AcctGroup
+	  SUBMIT_REQUIREMENT_CheckRequestedGroup_REASON = strcat("Permission denied setting accounting_group to ", RequestedAcctGroup)
+	endif
 	# require that the user mapped into an accounting group
 	SUBMIT_REQUIREMENT_NAMES = $(SUBMIT_REQUIREMENT_NAMES) AssignAccountingGroup
 	SUBMIT_REQUIREMENT_AssignAccountingGroup = AcctGroup isnt undefined && AccountingGroup isnt undefined
@@ -6524,6 +6553,7 @@ use role:execute
 ## Version-specific knobx.
 ##
 [$SECURITY.recommended_v9_0]
+description = default security config for 9.0 and later args:([service [, admins]])
 default: @end
 # Make it easy to detect if this metaknob was set.
 SECURITY_MODEL = 9.0
@@ -6535,10 +6565,12 @@ use security:strong
 # This allows anyone who can access port 9618 to READ, which lets
 # condor_status and condor_q work over the network out of the box.
 SEC_READ_AUTHENTICATION = OPTIONAL
+SEC_READ_ENCRYPTION = OPTIONAL
+SEC_READ_INTEGRITY = OPTIONAL
 
-ALLOW_ADMINISTRATOR = root@*, condor@*, condor_pool@*
-ALLOW_DAEMON = condor@*, condor_pool@*
-ALLOW_NEGOTIATOR = condor@*, condor_pool@*
+ALLOW_ADMINISTRATOR = $(1:condor)@* condor_pool@* $(2:root@*) $(3+)
+ALLOW_DAEMON = $(1:condor)@*  condor_pool@*
+ALLOW_NEGOTIATOR = $(1:condor)@* condor_pool@*
 ALLOW_WRITE = *
 ALLOW_READ = *
 @end

@@ -105,6 +105,9 @@
 #define SUBMIT_KEY_GridShell "gridshell"
 #define SUBMIT_KEY_GlobusRSL "globus_rsl"
 #define SUBMIT_KEY_NordugridRSL "nordugrid_rsl"
+#define SUBMIT_KEY_ArcRSL "arc_rsl"
+#define SUBMIT_KEY_ArcRte "arc_rte"
+#define SUBMIT_KEY_ArcResources "arc_resources"
 #define SUBMIT_KEY_RendezvousDir "rendezvousdir"
 #define SUBMIT_KEY_KeystoreFile "keystore_file"
 #define SUBMIT_KEY_KeystoreAlias "keystore_alias"
@@ -452,7 +455,7 @@ public:
 	StringList vars;           // loop variable names
 	StringList items;          // list of items to iterate over
 	qslice     slice;          // may be initialized to slice if "[]" is parsed.
-	MyString   items_filename; // file to read list of items from, if it is "<" list should be read from submit file until )
+	std::string   items_filename; // file to read list of items from, if it is "<" list should be read from submit file until )
 };
 
 

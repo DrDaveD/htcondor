@@ -39,7 +39,7 @@ and thus are relying solely on host-based authentication (i.e. a list of
 allowed hostnames or IP addresses), you have three options:
 
 - **Option A**.  Use `get_htcondor` to reinstall your pool with a fresh
-  installation; see the `instructions <https://htcondor.readthedocs.io/getting-htcondor/index.html>`_.
+  installation; see the :doc:`instructions </getting-htcondor/index>`.
   The `get_htcondor` tool will configure your pool with our recommended
   security configuration for you.  Once it's done, you can copy your
   site-specific configuration from your old installation to the new
@@ -93,7 +93,7 @@ most common configuration values that should be changed after an upgrade.
 Step 4
 ------
 
-The following changes my affect but your pool, but are not security
+The following changes may affect but your pool, but are not security
 improvements.  You may have to take action to continue using certain
 features of HTCondor.  If you don't use the feature, you may ignore
 its entry.
@@ -126,6 +126,38 @@ its entry.
   :ticket:`7808`, :ticket:`7607`, :ticket:`7337`, :ticket:`7261`,
   :ticket:`7109`, and :ticket:`6983` for potentially-breaking changes.
   (Too many other tickets to list.)
+
+New Features
+------------
+
+Upgrading from the 8.8 series of HTCondor to the 9.0 series will bring
+new features introduced in the 8.9 series of HTCondor. These new
+features include the following (note that this list contains only the
+most significant changes; a full list of changes can be found in the
+version history: \ `Development Release Series
+8.9 <../version-history/development-release-series-89.html>`_):
+
+- Absent any configuration, a new HTCondor installation denies authorization to all users
+
+- AES encryption is used for all communication and file transfers by default (Hardware accelerated when available)
+
+- New IDTOKEN authentication method enables fine-grained authorization control designed to replace GSI authentication
+
+- Improved support for GPUs, including machines with multiple GPUs
+
+- New condor_watch_q tool that efficiently provides live job status updates
+
+- Many improvements to the Python bindings, including new bindings for DAGMan and chirp
+
+- Improved curl, https, box, Amazon S3, and google drive file transfer plugins supporting uploads and authentication
+
+- File transfer times are now recorded in the job log
+
+- Added support for jobs that need to acquire and use OAUTH tokens
+
+- Many memory footprint and performance improvements in DAGMan
+
+- Submitter ceilings allow administrators to set limits on the number of running jobs per user across the pool
 
 Other Changes
 -------------

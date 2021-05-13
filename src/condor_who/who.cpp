@@ -1794,7 +1794,7 @@ static void read_address_file(const char * filename, std::string & addr)
 	close(fd);
 
 	// return the address
-	addr = buf;
+	if (cbRead > 0) addr.assign(buf, cbRead);
 }
 
 

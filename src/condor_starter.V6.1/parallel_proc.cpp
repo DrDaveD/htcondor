@@ -72,8 +72,8 @@ ParallelProc::addEnvVars()
 
 	   // Pull the environment out of the job ad...
 	Env env;
-	MyString env_errors;
-	if ( !env.MergeFrom(JobAd,&env_errors) ) {
+	std::string env_errors;
+	if ( !env.MergeFrom(JobAd, env_errors) ) {
 		dprintf( D_ALWAYS, "Failed to read environment from JobAd: %s\n", 
 				 env_errors.c_str() );
 		return 0;
@@ -82,7 +82,7 @@ ParallelProc::addEnvVars()
 		// Add the remote spool dir, the "server" directory for
 		// condor_chirp to stage files to/from
 	std::string spool;
-	if ( JobAd->LookupString( ATTR_REMOTE_SPOOL_DIR, spool ) < 1 ) {
+	if ( ! JobAd->LookupString( ATTR_REMOTE_SPOOL_DIR, spool ) ) {
 		dprintf( D_ALWAYS, "%s not found in JobAd.  Aborting.\n", 
 				 ATTR_REMOTE_SPOOL_DIR);
 		return 0;
@@ -98,7 +98,7 @@ ParallelProc::addEnvVars()
 
 		// And put the total number of nodes into CONDOR_NPROC
 	int machine_count;
-	if ( JobAd->LookupInteger( ATTR_CURRENT_HOSTS, machine_count ) !=  1 ) {
+	if ( ! JobAd->LookupInteger( ATTR_CURRENT_HOSTS, machine_count ) ) {
 		dprintf( D_ALWAYS, "%s not found in JobAd.  Aborting.\n", 
 				 ATTR_CURRENT_HOSTS);
 		return 0;
@@ -153,13 +153,13 @@ ParallelProc::addEnvVars()
 	}
 	
 	if(IsFulldebug(D_FULLDEBUG)) {
-		MyString env_str;
-		env.getDelimitedStringForDisplay(&env_str);
+		std::string env_str;
+		env.getDelimitedStringForDisplay( env_str);
 		dprintf ( D_FULLDEBUG, "New env: %s\n", env_str.c_str() );
 	}
 
         // now put the env back into the JobAd:
-	if(!env.InsertEnvIntoClassAd(JobAd,&env_errors)) {
+	if(!env.InsertEnvIntoClassAd(JobAd, env_errors)) {
 		dprintf( D_ALWAYS, "Unable to update env! Aborting: %s\n",
 				 env_errors.c_str());
 		return 0;

@@ -153,7 +153,7 @@ make_spool(classad::ClassAd& ad)
         THROW_EX(HTCondorInternalError, "Unable to set job hold code.")
     std::stringstream ss;
     ss << ATTR_JOB_STATUS << " == " << COMPLETED << " && ( ";
-    ss << ATTR_COMPLETION_DATE << "=?= UNDDEFINED || " << ATTR_COMPLETION_DATE << " == 0 || ";
+    ss << ATTR_COMPLETION_DATE << " =?= UNDEFINED || " << ATTR_COMPLETION_DATE << " == 0 || ";
     ss << "((time() - " << ATTR_COMPLETION_DATE << ") < " << 60 * 60 * 24 * 10 << "))";
     classad::ClassAdParser parser;
     classad::ExprTree * new_expr;
@@ -4104,7 +4104,7 @@ void export_schedd()
             Submit one or more jobs to the *condor_schedd* daemon.
 
             This method requires the invoker to provide a :class:`~htcondor.Submit` object that
-            describes the jobs to submit.  The return value will be a :class::`~htcondor.SubmitResult`
+            describes the jobs to submit.  The return value will be a :class:`~htcondor.SubmitResult`
             that contains the cluster ID and ClassAd of the submitted jobs.
 
             For backward compatibility, this method will also accept a :class:`~classad.ClassAd`

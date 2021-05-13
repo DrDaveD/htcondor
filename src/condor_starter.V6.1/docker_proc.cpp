@@ -168,8 +168,8 @@ int DockerProc::StartJob() {
 	}
 
 	Env job_env;
-	MyString env_errors;
-	if( !Starter->GetJobEnv(JobAd,&job_env,&env_errors) ) {
+	std::string env_errors;
+	if( !Starter->GetJobEnv(JobAd,&job_env, env_errors) ) {
 		dprintf( D_ALWAYS, "Aborting DockerProc::StartJob: %s\n", env_errors.c_str());
 		return 0;
 	}
@@ -281,6 +281,7 @@ bool DockerProc::JobReaper( int pid, int status ) {
 				int r = read(fd, buf, 511);
 				if (r < 0) {
 					dprintf(D_ALWAYS, "Cannot read docker error file on docker create container. Errno %d\n", errno);
+					buf[0] = '\0';
 				} else {
 					buf[r] = '\0';
 					int buflen = strlen(buf);
@@ -612,8 +613,8 @@ DockerProc::AcceptSSHClient(Stream *stream) {
 	args.AppendArg("-i");
 
 	Env env;
-	MyString env_errors;
-	if( !Starter->GetJobEnv(JobAd,&env,&env_errors) ) {
+	std::string env_errors;
+	if( !Starter->GetJobEnv(JobAd,&env, env_errors) ) {
 		dprintf( D_ALWAYS, "Aborting DockerProc::exec: %s\n", env_errors.c_str());
 		return 0;
 	}

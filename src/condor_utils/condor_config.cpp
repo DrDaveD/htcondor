@@ -1002,7 +1002,7 @@ real_config(const char* host, int wantsQuiet, int config_options, const char * r
 
 		// Read in the global file
 	if( config_source ) {
-		process_config_source( config_source, 0, "global config source", NULL, true );
+		process_config_source( config_source, 0, "global config source", NULL, !continue_if_no_config );
 		global_config_source = config_source;
 		config_source = NULL;
 	}
@@ -2098,20 +2098,6 @@ char *param_with_context(const char *name, const char *subsys, const char *local
 char*
 param_ctx(const char* name, MACRO_EVAL_CONTEXT & ctx)
 {
-
-#if 0
-	// hack to make SUBSYS.LOCALNAME work for direct param lookups.
-	if (ctx.localname && ctx.subsys) {
-		MyString lcl(ctx.subsys); lcl += "."; lcl += ctx.localname;
-		const char * lval = lookup_macro_exact_no_default(name, lcl.c_str(), ConfigMacroSet, ctx.use_mask);
-		if (lval) {
-			char * expanded_val = expand_macro(lval, ConfigMacroSet, ctx);
-			if ( ! expanded_val) { return NULL; }
-			else if (  ! expanded_val[0]) { free(expanded_val); return NULL; }
-			return expanded_val;
-		}
-	}
-#endif
 
 	const char * pval = lookup_macro(name, ConfigMacroSet, ctx);
 	if ( ! pval || ! pval[0]) {
@@ -3762,7 +3748,7 @@ param_with_full_path(const char *name)
 		// Store the result back into the param table so we don't repeat
 		// operation every time we are invoked, and so result can be
 		// inspected with condor_config_val.
-		MyString p = which(command
+		std::string p = which(command
 #ifndef WIN32
 			// on UNIX, always include system path entries
 			, "/bin:/usr/bin:/sbin:/usr/sbin"

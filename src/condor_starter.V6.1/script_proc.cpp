@@ -90,7 +90,10 @@ ScriptProc::StartJob()
 		exe_path += Starter->GetWorkingDir(0);
 		exe_path += DIR_DELIM_CHAR;
 	}
-	exe_path += tmp;
+
+	if (tmp) {
+		exe_path += tmp;
+	}
 	free( tmp ); 
 	tmp = NULL;
 
@@ -176,9 +179,9 @@ ScriptProc::StartJob()
 		// Now, instantiate an Env object so we can manipulate the
 		// environment as needed.
 	Env job_env;
-	MyString env_errors;
+	std::string env_errors;
 	if( env2 && *env2 ) { 
-		if( ! job_env.MergeFromV2Raw(env2,&env_errors) ) {
+		if( ! job_env.MergeFromV2Raw(env2, env_errors) ) {
 			dprintf( D_ALWAYS, "Invalid %s found in JobAd (%s).  "
 					 "Aborting ScriptProc::StartJob.\n",
 					 env2_attr.c_str(),env_errors.c_str() );
@@ -188,7 +191,7 @@ ScriptProc::StartJob()
 		}
 	}
 	else if( env1 && *env1 ) { 
-		if( ! job_env.MergeFromV1Raw(env1,&env_errors) ) {
+		if( ! job_env.MergeFromV1Raw(env1, env_errors) ) {
 			dprintf( D_ALWAYS, "Invalid %s found in JobAd (%s).  "
 					 "Aborting ScriptProc::StartJob.\n",
 					 env1_attr.c_str(),env_errors.c_str() );
@@ -209,8 +212,8 @@ ScriptProc::StartJob()
 
 		// Grab the full environment back out of the Env object 
 	if(IsFulldebug(D_FULLDEBUG)) {
-		MyString env_str;
-		job_env.getDelimitedStringForDisplay(&env_str);
+		std::string env_str;
+		job_env.getDelimitedStringForDisplay( env_str);
 		dprintf(D_FULLDEBUG, "%sEnv = %s\n", name, env_str.c_str() );
 	}
 

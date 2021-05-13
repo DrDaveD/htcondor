@@ -261,7 +261,7 @@ bool parse(Dag *dag, const char *filename, bool useDagDir,
 		char *token = strtok(line, DELIMITERS);
 		if ( !token ) continue; // so Coverity is happy
 
-		bool parsed_line_successfully;
+		bool parsed_line_successfully = false;
 
 		// Handle a Job spec
 		// Example Syntax is:  JOB j1 j1.condor [DONE]
@@ -845,7 +845,6 @@ parse_node( Dag *dag, const char * nodeName, const char * submitFileOrSubmitDesc
 				submitOrDagFile );
 	MyString whynot;
 	bool done = false;
-	Dag *tmp = NULL;
 
 	NodeType type = NodeType::JOB;
 	if ( strcasecmp ( nodeTypeKeyword, "FINAL" ) == 0 ) type = NodeType::FINAL;
@@ -965,7 +964,7 @@ parse_node( Dag *dag, const char * nodeName, const char * submitFileOrSubmitDesc
 	}
 
 	// check to see if this node name is also a splice name for this dag.
-	if (dag->LookupSplice(MyString(nodeName), tmp) == 0) {
+	if (dag->LookupSplice(MyString(nodeName))) {
 		debug_printf( DEBUG_QUIET, 
 			  "ERROR: %s (line %d): "
 			  "Node name '%s' must not also be a splice name.\n",
@@ -1248,8 +1247,8 @@ parse_parent(
 		const char *jobName2 = tmpJobName.c_str();
 
 		// if splice name then deal with that first...
-		Dag *splice_dag;
-		if (dag->LookupSplice(jobName2, splice_dag) == 0) {
+		Dag* splice_dag = dag->LookupSplice(jobName2);
+		if (splice_dag) {
 
 			// grab all of the final nodes of the splice and make them parents
 			// for this job.
@@ -1309,8 +1308,8 @@ parse_parent(
 		const char *jobName2 = tmpJobName.c_str();
 
 		// if splice name then deal with that first...
-		Dag *splice_dag;
-		if (dag->LookupSplice(jobName2, splice_dag) == 0) {
+		Dag *splice_dag = dag->LookupSplice(jobName2);
+		if (splice_dag) {
 			// grab all of the initial nodes of the splice and make them 
 			// children for this job.
 
@@ -2241,7 +2240,7 @@ parse_splice(
 
 	// associate the splice_dag with its name in _this_ dag, later I'll merge
 	// the nodes from this splice into _this_ dag.
-	if (dag->InsertSplice(spliceName, splice_dag) == -1) {
+	if (!dag->InsertSplice(spliceName, splice_dag)) {
 		debug_printf( DEBUG_QUIET, "ERROR: Splice name '%s' used for multiple "
 			"splices. Splice names must be unique per dag file.\n", 
 			spliceName.c_str());
@@ -2674,16 +2673,16 @@ parse_connect(
 		return false;
 	}
 
-	Dag *parentSplice;
-	if ( dag->LookupSplice( splice1, parentSplice ) != 0) {
+	Dag *parentSplice = dag->LookupSplice( splice1 );
+	if ( !parentSplice ) {
 		debug_printf( DEBUG_QUIET,
 					  "ERROR: %s (line %d): Splice %s not found!\n",
 					  filename, lineNumber, splice1 );
 		return false;
 	}
 
-	Dag *childSplice;
-	if ( dag->LookupSplice( splice2, childSplice ) != 0) {
+	Dag *childSplice = dag->LookupSplice( splice2 );
+	if ( !childSplice ) {
 		debug_printf( DEBUG_QUIET,
 					  "ERROR: %s (line %d): Splice %s not found!\n",
 					  filename, lineNumber, splice2 );
